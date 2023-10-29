@@ -1,0 +1,252 @@
+function drawmap(kml_name) {
+	
+	// First, draw the legend (esp since it should appear even before the data does)
+	// drawLegend();  
+	
+	// Draw the correct map with the KML file provided
+	 // Only option I'll be using is preserveViewport, so zoom doesn't change to fit whole set
+	 // More info here: http://code.google.com/apis/maps/documentation/javascript/overlays.html
+	
+	 // Display loading indicator
+	// See also the css/loading.css file
+	 $('#loadingIndicator').html("<strong>Map Data Loading</strong>");
+	
+	base_kml_name = kml_path + kml_name;
+	
+	// Define KML file to load (must be publically available)	
+	nyLayer1 = new google.maps.KmlLayer(
+		base_kml_name + "a.kmz", 
+	  	{preserveViewport: true}
+		);
+	
+	nyLayer2 = new google.maps.KmlLayer(
+		base_kml_name + "b.kmz", 
+	  	{preserveViewport: true}
+		);
+	
+	// listen to see if second layer's KML has loaded.
+	// When it does, make map-loading sign disappear.	
+	var listener = google.maps.event.addListener(nyLayer2, 'metadata_changed', function() {
+	  $('#loadingIndicator').html("");
+	  google.maps.event.clearListeners(nyLayer2, 'metadata_changed');
+	});
+
+	  // Then render the KML layer onto the map -- defined as variable "map" in the render line 
+	  // Uses setMap() method to do it.
+	nyLayer1.setMap(map);
+	nyLayer2.setMap(map);
+		
+    mapdrawn = true;
+	
+}
+
+function clearmap() {
+    // Blanks all of the map layers
+	// Works only if the first map has been drawn
+	if (mapdrawn == true) {
+		nyLayer1.setMap(null);
+		nyLayer2.setMap(null);
+	}
+}
+
+// function menuchange() {
+// 	// Runs when the menu changes
+// 	var kml_name = $('#map_menu').val();
+// 	clearmap();
+// 	drawmap(kml_name);	
+// }
+
+function mapLoaded() {
+	// Called when the KML metadata changes
+	$('#loadingIndicator').html("done");
+}
+
+function codeAddress() {
+  var address = document.getElementById("address").value;
+  geocoder.geocode( { 'address': address}, function(results, status) {
+    if (status == google.maps.GeocoderStatus.OK) {
+      map.setCenter(results[0].geometry.location);
+			map.setZoom(14);
+    } else {
+      alert("Couldn't relocate for the following reason: " + status);
+    }
+  });
+}
+
+function currentMapUrl() {
+	var embed_url_response = basemap_location + 
+			"?lat=" + map.getCenter().lat().toFixed(4) + 
+			"&lon=" + map.getCenter().lng().toFixed(4) + 
+			"&zoom=" + map.getZoom();
+	return embed_url_response;
+}
+
+function embedBox() {
+	var embed_url_response = currentMapUrl();
+	jAlert('<strong>The link to this map is:<br></strong>'+ embed_url_response+'<br><br><strong>To embed on a blog or site, copy this:<br></strong>&lt;iframe src=\"'+embed_url_response+'\" height=\"700\" width=\"520\" scrolling=\"no\" frameborder=\"0\"&gt;&lt;/iframe>', 'Share or Embed');
+	
+}
+
+function expandWindow() {
+    window.open( currentMapUrl() );
+    return false;
+};
+
+//
+// Main Mapmaking Section
+//
+
+// Global Variable Declaration
+var map;
+var geocoder;
+var mapdrawn = false;
+var basemap_location = "https://project.wnyc.org/census-maps/same-sex/same-sex-map.html"
+var kml_path = "https://project.wnyc.org/census-maps/same-sex/kml/"
+// var kml_path = "https://dl.dropbox.com/u/466610/"
+var nyLayer1 = new google.maps.KmlLayer(null); 
+var nyLayer2 = new google.maps.KmlLayer(null);
+
+// get named params from the URL using jquery.url.min.js
+var map_lat = $.url.param("lat");
+var map_lon = $.url.param("lon");
+var map_zoom = $.url.param("zoom");
+// var map_select = $.url.param("sel");
+
+// set defaults if no named params in URL
+if (map_lat == "") {
+	map_lat = 40.7171;
+}
+
+if (map_lon == "") {
+	map_lon = -73.9513;
+}
+
+if (map_zoom == "") {
+	map_zoom = 12;
+} else {
+	map_zoom = parseInt(map_zoom);
+}
+
+
+// set initial starting point for map
+var centerpoint = new google.maps.LatLng(map_lat, map_lon);
+
+var MY_MAPTYPE_ID = 'wnyc';
+ 
+function initialize() {
+   
+  // set up the geocoder for addresses search (when used)
+   geocoder = new google.maps.Geocoder();
+
+  // use WNYC's custom Google Maps styling
+  var stylez = [
+  {
+    featureType: "road",
+    elementType: "geometry",
+    stylers: [
+      { gamma: 4.76 },
+      { visibility: "simplified" },
+      { saturation: -99 },
+      { lightness: -20 }
+    ]
+  },{
+    featureType: "poi",
+    elementType: "all",
+    stylers: [
+      { saturation: 0 },
+      { visibility: "off" }
+    ]
+  },{
+    featureType: "transit",
+    elementType: "all",
+    stylers: [
+      { visibility: "off" }
+    ]
+  },{
+    featureType: "",
+    elementType: "labels",
+    stylers: [
+			{ saturation: -99 },
+      { hue: "#ffff00" }
+    ]
+  },{
+    featureType: "road.highway",
+    elementType: "labels",
+    stylers: [
+      { visibility: "off" }
+    ]
+  },{
+    featureType: "landscape",
+    elementType: "all",
+    stylers: [
+      { visibility: "off" }
+    ]
+  },{
+    featureType: "water",
+    elementType: "all",
+    stylers: [
+      { lightness: 25 }
+    ]
+  }
+
+  ];
+
+  // set base map options
+  var mapOptions = {
+    zoom: map_zoom,
+    center: centerpoint,
+    streetViewControl: false,
+    mapTypeControl: false,
+    zoomControl: true,
+	zoomControlOptions: {style: google.maps.ZoomControlStyle.SMALL},
+    panControl: true,
+    mapTypeControlOptions: {
+       mapTypeIds: [MY_MAPTYPE_ID]
+    },
+    mapTypeId: MY_MAPTYPE_ID
+  };
+ 
+  map = new google.maps.Map(document.getElementById("map_canvas"),
+      mapOptions);
+
+	// Set one option for the styled map: Its name
+	var styledMapOptions = {
+    name: "WNYC"
+	};
+
+	// this creates the new StyledMapType object, using the styles variable and the options
+	var myMapType = new google.maps.StyledMapType(stylez, styledMapOptions);
+
+	// set 'WNYC' as a map type, naming it ... then use that one to start with 
+	map.mapTypes.set('WNYC', myMapType);
+	map.setMapTypeId('WNYC');
+	
+	drawmap('2011_07_13_2323-samesex2010');
+
+}
+
+// Do the following when the page is ready
+$(document).ready(function(){
+
+	 // Watch the address input box and clear it when highlighted
+	 $('#address').focus(function(){
+	  if(this.value=='Zip code or place')
+	  {
+	  this.value=''
+	  }
+	 });
+ 
+	 // if  address input box unhighlighted and empty, put back helper text
+	 $('#address').blur(function(){
+	  if(this.value=='')
+	  {
+	  this.value='Zip code or place'
+	  }
+	 });
+
+	 // run the initialize function
+	 initialize();
+
+});
+
+

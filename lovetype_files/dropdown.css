@@ -1,0 +1,11 @@
+#dropdown {
+    position: absolute;
+    top:95px;
+    left:80px;
+    background-color:#FFF;
+    padding:4px;
+    font-family: Arial, sans-serif;
+    font-size:14px;
+    border: 2px outset #DFF2FF;
+    line-height:1.3em;
+}
